@@ -1,0 +1,16 @@
+A3
+A3Edit
+A3Lib
+*.obj
+*.sym
+*.exe
+*.dll
+tmp.lnk
+errinfo.$$$
+*.bak
+*.dot
+*.png
+*App.ob2
+*.res
+*.ap3
+*.db3
