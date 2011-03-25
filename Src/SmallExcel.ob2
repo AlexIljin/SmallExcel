@@ -200,11 +200,52 @@ BEGIN
    RETURN res
 END LoadTable;
 
+PROCEDURE OutputTable (table: Table);
+(* Output contents of the 'table' using the Out module. *)
+CONST
+   Tab = 09X;
+VAR
+   w, h: LONGINT;
+
+   PROCEDURE OutputCell (cell: Cell);
+   BEGIN
+      IF cell # NIL THEN
+         WITH cell: StringCell DO
+            Out.String (cell.string^);
+         | cell: ValueCell DO
+            Out.Int (cell.value, 0);
+         | cell: ErrorCell DO
+            IF cell = errParsing THEN
+               Out.String ('#Parsing');
+            ELSE
+               ASSERT (FALSE, 60);
+            END;
+         END;
+      END;
+   END OutputCell;
+
+BEGIN (* OutputTable *)
+   Out.Open;
+   h := 0;
+   WHILE h < LEN (table^, 1) DO
+      w := 0;
+      WHILE w < LEN (table^, 0) - 1 DO
+         OutputCell (table [w, h]);
+         Out.Char (Tab);
+         INC (w);
+      END;
+      OutputCell (table [w, h]);
+      Out.Ln;
+      INC (h);
+   END;
+END OutputTable;
+
 PROCEDURE Do;
 VAR
    table: Table;
 BEGIN
    table := LoadTable ();
+   OutputTable (table);
 END Do;
 
 BEGIN
