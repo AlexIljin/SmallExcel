@@ -75,7 +75,7 @@ TYPE
 
 VAR
    (* Global error identifiers *)
-   errParsing: ErrorCell;
+   errParsing, errReading: ErrorCell;
 
 PROCEDURE MakeErrorCell (VAR error: ErrorCell): ErrorCell;
 (* Error cells are all marked by the same special 'ErrorCell' type. To
@@ -178,6 +178,32 @@ VAR
    width, height, w, h: LONGINT;
    str: ARRAY MaxCellDataLength OF CHAR;
    res: Table;
+
+   PROCEDURE SkipEol;
+   VAR
+      ch: CHAR;
+   BEGIN
+      In.Char (ch);
+   END SkipEol;
+
+   PROCEDURE ReadCellStr (VAR str: ARRAY OF CHAR): BOOLEAN;
+   (* Read data from In module upto the next Tab or EOL character. Return TRUE
+    * on success, or FALSE if input is too long for the 'str' buffer. *)
+   VAR
+      ch: CHAR;
+      i: LONGINT;
+   BEGIN
+      i := 0;
+      In.Char (ch);
+      WHILE In.Done & (ch >= ' ') & (i < LEN (str) - 1) DO
+         str [i] := ch;
+         INC (i);
+         In.Char (ch);
+      END;
+      str [i] := 0X;
+      RETURN (i > 0) OR In.Done & (ch < ' ')
+   END ReadCellStr;
+
 BEGIN
    In.Open;
    In.LongInt (height);
@@ -186,13 +212,17 @@ BEGIN
    In.LongInt (width);
    ASSERT (In.Done, 22);
    ASSERT ((1 <= width) & (width <= MaxWidth), 23);
+   SkipEol;
    NEW (res, width, height);
    h := 0;
    WHILE h < height DO
       w := 0;
       WHILE w < width DO
-         In.String (str);
-         res [w, h] := StrToCell (str);
+         IF ReadCellStr (str) THEN
+            res [w, h] := StrToCell (str);
+         ELSE
+            res [w, h] := MakeErrorCell (errReading);
+         END;
          INC (w);
       END;
       INC (h);
@@ -217,6 +247,8 @@ VAR
          | cell: ErrorCell DO
             IF cell = errParsing THEN
                Out.String ('#Parsing');
+            ELSIF cell = errReading THEN
+               Out.String ('#Reading');
             ELSE
                ASSERT (FALSE, 60);
             END;
