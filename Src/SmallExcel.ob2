@@ -112,7 +112,6 @@ PROCEDURE StrToInt (VAR str: ARRAY OF CHAR; VAR value: LONGINT): BOOLEAN;
 CONST
    MaxLength = 10; (* bound by the LONGINT type *)
 VAR
-   res: BOOLEAN;
    i, power10: LONGINT;
 BEGIN
    value := 0;
