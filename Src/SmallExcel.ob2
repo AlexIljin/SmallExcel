@@ -38,6 +38,9 @@ Test	1	5	Sheet
 #Expr	#Parse	#Cycle
  *)
 
+CONST
+   MaxCellDataLength = 256; (* Max length of a cell input text *)
+
 TYPE
    (* Abstract cell of the table *)
    CellDesc = RECORD
@@ -166,7 +169,7 @@ CONST
    MaxHeight = ORD('9') - ORD ('0') + 1;
 VAR
    width, height, w, h: LONGINT;
-   str: ARRAY 256 OF CHAR;
+   str: ARRAY MaxCellDataLength OF CHAR;
    res: Table;
 BEGIN
    In.Open;
