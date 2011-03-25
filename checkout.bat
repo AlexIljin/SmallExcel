@@ -17,7 +17,6 @@ call git --git-dir=%repo_path% checkout-index -a
 rem Get the necessary parts of the checkout
 move %checkout_path%\A3 ..
 move %checkout_path%\A3Lib ..
-move %checkout_path%\A3Edit ..
 
 rem Delete the temporary files
 cd ..
