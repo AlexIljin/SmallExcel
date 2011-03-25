@@ -180,10 +180,10 @@ VAR
    res: Table;
 BEGIN
    In.Open;
-   In.Int (height);
+   In.LongInt (height);
    ASSERT (In.Done, 20);
    ASSERT ((1 <= height) & (height <= MaxHeight), 21);
-   In.Int (width);
+   In.LongInt (width);
    ASSERT (In.Done, 22);
    ASSERT ((1 <= width) & (width <= MaxWidth), 23);
    NEW (res, width, height);
