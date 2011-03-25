@@ -130,6 +130,7 @@ PROCEDURE StrToCell (VAR str: ARRAY OF CHAR): Cell;
  * This procedure is used for initial filling of the table, 'str' is read from
  * the input stream. If 'str' is empty, return NIL. *)
 VAR
+   expressionCell: ExpressionCell;
    stringCell: StringCell;
    valueCell: ValueCell;
    pstr: PStr;
@@ -146,6 +147,13 @@ BEGIN
          res := MakeErrorCell (errParsing);
       END;
    | '=': (* expression cell *)
+      len := Length (str); (* no +1, since we are reducing the length by 1 *)
+      NEW (pstr, len);
+      SYSTEM.MOVE (SYSTEM.ADR (str [1]), SYSTEM.ADR (pstr^ [0]), len);
+      NEW (expressionCell);
+      expressionCell.marked := FALSE;
+      expressionCell.expression := pstr;
+      res := expressionCell;
    | "'": (* string cell *)
       len := Length (str); (* no +1, since we are reducing the length by 1 *)
       NEW (pstr, len);
