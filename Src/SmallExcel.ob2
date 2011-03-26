@@ -14,14 +14,14 @@ IMPORT
 CONST
    MaxCellDataLength = 256; (* Max length of a cell input text *)
    (* Error codes are sequential to be used as array indices. *)
-   errParsing = 0;
-   errReading = 1;
-   errCycle   = 2;
-   errOutOfRange = 3;
-   errEmpty = 4;
-   errStringOp = 5;
-   errRefError = 6;
-   errDivByZero = 7;
+   errParsing = 0; (* Error while parsing cell contents *)
+   errReading = 1; (* Table was not read entirely from the input *)
+   errCycle   = 2; (* Circular reference in expressions *)
+   errOutOfRange = 3; (* Referenced cell is outside of the table *)
+   errEmpty = 4; (* An empty cell was used in an expression *)
+   errStringOp = 5; (* A string cell was used in an expression *)
+   errRefError = 6; (* A referenced cell contains an error *)
+   errDivByZero = 7; (* Division by zero in an expression *)
    NumErrors = 8; (* Total number of error codes *)
 
 TYPE
