@@ -75,7 +75,8 @@ TYPE
 
 VAR
    (* Global error identifiers *)
-   errParsing, errReading: ErrorCell;
+   errParsing, errReading, errCycle, errOutOfRange, errEmpty, errStringOp,
+   errRefError: ErrorCell;
 
 PROCEDURE MakeErrorCell (VAR error: ErrorCell): ErrorCell;
 (* Error cells are all marked by the same special 'ErrorCell' type. To
@@ -249,6 +250,16 @@ VAR
                Out.String ('#Parsing');
             ELSIF cell = errReading THEN
                Out.String ('#Reading');
+            ELSIF cell = errCycle THEN
+               Out.String ('#Cycle');
+            ELSIF cell = errOutOfRange THEN
+               Out.String ('#OutOfRange');
+            ELSIF cell = errEmpty THEN
+               Out.String ('#Empty');
+            ELSIF cell = errStringOp THEN
+               Out.String ('#StringOp');
+            ELSIF cell = errRefError THEN
+               Out.String ('#RefErr');
             ELSE
                ASSERT (FALSE, 60);
             END;
@@ -272,11 +283,124 @@ BEGIN (* OutputTable *)
    END;
 END OutputTable;
 
+PROCEDURE CalculateTable (table: Table);
+(* Calculate all expressions in the table replacing ExpressionCells with
+ * ValueCells or ErrorCells. Cells being used in evaluation are marked using
+ * the 'mark' flag (initially all flags are FALSE), this is used to detect
+ * circular references. *)
+VAR
+   w, h: LONGINT;
+   cell: Cell;
+
+   PROCEDURE ^ CalcCell (cell: ExpressionCell): Cell;
+
+   PROCEDURE CalcExpression (VAR str: ARRAY OF CHAR): Cell;
+   (* Calculate the expression in 'str' and return the result either as a
+    * ValueCell on success, or one of the global ErrorCell instances on
+    * error. *)
+   CONST
+      opNone = 0;
+      opPlus = 1;
+      opMinus = 2;
+      opDivide = 3;
+      opMultiply = 4;
+   VAR
+      valueCell: ValueCell;
+      i, w, h, value, operation: LONGINT;
+      res, cell: Cell;
+   BEGIN
+      res := NIL;
+      value := 0;
+      operation := opNone;
+      (* TODO: add operations recognition *)
+      i := 0;
+      WHILE (res = NIL) & (str [i] # 0X) DO
+         CASE str [i] OF
+         | '0'..'9':
+            (* TODO: add number recognition *)
+         | 'a'..'z', 'A'..'Z':
+            w := ORD (CAP (str [i])) - ORD ('A');
+            IF w < LEN (table^, 0) THEN
+               INC (i);
+               IF ('0' <= str [i]) & (str [i] <= '9') THEN
+                  h := ORD (str [i]) - ORD ('0');
+                  IF h < LEN (table^, 1) THEN
+                     cell := table [w, h];
+                     IF cell # NIL THEN
+                        IF cell IS ExpressionCell THEN
+                           cell := CalcCell (cell (ExpressionCell));
+                        END;
+                        WITH cell: ValueCell DO
+                           CASE operation OF
+                           | opNone: value := cell.value;
+                           | opPlus: value := value + cell.value;
+                           | opMinus: value := value - cell.value;
+                           | opDivide: value := value DIV cell.value;
+                           | opMultiply: value := value * cell.value;
+                           END;
+                        | cell: StringCell DO
+                           res := MakeErrorCell (errStringOp);
+                        | cell: ErrorCell DO
+                           res := MakeErrorCell (errRefError);
+                        END;
+                     ELSE
+                        res := MakeErrorCell (errEmpty);
+                     END;
+                  ELSE
+                     res := MakeErrorCell (errOutOfRange);
+                  END;
+               ELSE
+                  IF str [i] = 0X THEN
+                     DEC (i);
+                  END;
+                  res := MakeErrorCell (errParsing);
+               END;
+            ELSE
+               res := MakeErrorCell (errOutOfRange);
+            END;
+         ELSE
+            res := MakeErrorCell (errParsing);
+         END;
+         INC (i);
+      END;
+      RETURN res
+   END CalcExpression;
+
+   PROCEDURE CalcCell (cell: ExpressionCell): Cell;
+   VAR
+      res: Cell;
+   BEGIN
+      IF cell.marked THEN
+         res := MakeErrorCell (errCycle);
+      ELSE
+         cell.marked := TRUE;
+         res := CalcExpression (cell.expression^);
+         cell.marked := FALSE;
+      END;
+      RETURN res
+   END CalcCell;
+
+BEGIN
+   h := 0;
+   WHILE h < LEN (table^, 1) DO
+      w := 0;
+      WHILE w < LEN (table^, 0) DO
+         cell := table [w, h];
+         IF (cell # NIL) & (cell IS ExpressionCell) THEN
+            table [w, h] := CalcCell (cell (ExpressionCell));
+         END;
+         INC (w);
+      END;
+      INC (h);
+   END;
+END CalculateTable;
+
 PROCEDURE Do;
 VAR
    table: Table;
 BEGIN
    table := LoadTable ();
+   CalculateTable (table);
    OutputTable (table);
 END Do;
 
