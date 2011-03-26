@@ -115,6 +115,9 @@ CONST
 VAR
    maxIndex, power10: LONGINT;
 BEGIN
+   WHILE str [i] = '0' DO (* skip leading zeroes *)
+      INC (i);
+   END;
    maxIndex := i + MaxLength;
    value := 0;
    power10 := 1;
