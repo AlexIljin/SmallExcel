@@ -367,7 +367,7 @@ VAR
       i := 0;
       WHILE res = NIL DO
          CASE str [i] OF
-         | 0X:
+         | 0X: (* oops - operand expected here *)
             res := MakeErrorCell (errParsing);
          | '0'..'9':
             IF StrToInt (str, i, integer) OR ~(('0' <= str [i]) & (str [i] <= '9')) THEN
@@ -400,10 +400,11 @@ VAR
                   res := MakeErrorCell (errEmpty);
                END;
             END;
-         ELSE
+         ELSE (* oops - operand expected here *)
             res := MakeErrorCell (errParsing);
          END;
          IF res = NIL THEN
+            (* No error. Either EOL, or a next operation is expected here. *)
             CASE str [i] OF
             | 0X: (* end of expression = success *)
                NEW (valueCell);
@@ -416,7 +417,7 @@ VAR
             ELSE
                res := MakeErrorCell (errParsing);
             END;
-            INC (i);
+            INC (i); (* skip the 'operation' character *)
          END;
       END;
       RETURN res
@@ -452,6 +453,7 @@ BEGIN
 END CalculateTable;
 
 PROCEDURE Do;
+(* Execute the main code sequence. *)
 VAR
    table: Table;
 BEGIN
@@ -461,6 +463,7 @@ BEGIN
 END Do;
 
 PROCEDURE Init;
+(* Initialize global variables at startup. *)
 VAR
    i: INTEGER;
 BEGIN
@@ -475,6 +478,7 @@ BEGIN
    errorTexts [errStringOp  ] := '#StringOp';
    errorTexts [errRefError  ] := '#RefErr';
    errorTexts [errDivByZero ] := '#DivByZero';
+   (* make sure all error codes have text assigned *)
    FOR i := 0 TO LEN (errorTexts) - 1 DO
       ASSERT (errorTexts [i] # '', 100);
    END;
