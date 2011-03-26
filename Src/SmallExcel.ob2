@@ -160,7 +160,7 @@ PROCEDURE LoadTable (): Table;
 (* Read table from module In and return it. *)
 CONST
    MaxWidth = ORD('Z') - ORD ('A') + 1;
-   MaxHeight = ORD('9') - ORD ('0') + 1;
+   MaxHeight = ORD('9') - ORD ('1') + 1; (* row numbers start from 1 *)
 VAR
    width, height, w, h: LONGINT;
    str: ARRAY MaxCellDataLength OF CHAR;
