@@ -108,17 +108,17 @@ BEGIN
    RETURN res
 END Length;
 
-PROCEDURE StrToInt (VAR str: ARRAY OF CHAR; VAR value: LONGINT): BOOLEAN;
-(* Convert 'str' to 'value' >= 0, return TRUE on success. *)
+PROCEDURE StrToInt (VAR str: ARRAY OF CHAR; VAR i: LONGINT; VAR value: LONGINT): BOOLEAN;
+(* Convert 'str [i...]' to 'value' >= 0, return TRUE on success. *)
 CONST
    MaxLength = 10; (* bound by the LONGINT type *)
 VAR
-   i, power10: LONGINT;
+   maxIndex, power10: LONGINT;
 BEGIN
+   maxIndex := i + MaxLength;
    value := 0;
-   i := 0;
    power10 := 1;
-   WHILE (i < MaxLength) & ('0' <= str [i]) & (str [i] <= '9') DO
+   WHILE (i < maxIndex) & ('0' <= str [i]) & (str [i] <= '9') DO
       value := value * power10 + ORD (str [i]) - ORD ('0');
       power10 := power10 * 10;
       INC (i);
@@ -135,12 +135,13 @@ VAR
    stringCell: StringCell;
    valueCell: ValueCell;
    pstr: PStr;
-   value, len: LONGINT;
+   value, len, i: LONGINT;
    res: Cell;
 BEGIN
    CASE str [0] OF
    | '0'..'9': (* value cell *)
-      IF StrToInt (str, value) THEN
+      i := 0;
+      IF StrToInt (str, i, value) THEN
          NEW (valueCell);
          valueCell.value := value;
          res := valueCell;
