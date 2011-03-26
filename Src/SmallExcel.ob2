@@ -40,6 +40,16 @@ Test	1	5	Sheet
 
 CONST
    MaxCellDataLength = 256; (* Max length of a cell input text *)
+   (* Error codes are sequential to be used as array indices. *)
+   errParsing = 0;
+   errReading = 1;
+   errCycle   = 2;
+   errOutOfRange = 3;
+   errEmpty = 4;
+   errStringOp = 5;
+   errRefError = 6;
+   errDivByZero = 7;
+   NumErrors = 8; (* Total number of error codes *)
 
 TYPE
    (* Abstract cell of the table *)
@@ -71,14 +81,15 @@ TYPE
 
    (* Cell with an error *)
    ErrorCell = POINTER TO RECORD (CellDesc)
+      code: INTEGER; (* Error code *)
    END;
 
 VAR
    (* Global error identifiers *)
-   errParsing, errReading, errCycle, errOutOfRange, errEmpty, errStringOp,
-   errRefError, errDivByZero: ErrorCell;
+   errors: ARRAY NumErrors OF ErrorCell;
+   errorTexts: ARRAY NumErrors OF ARRAY 12 OF CHAR;
 
-PROCEDURE MakeErrorCell (VAR error: ErrorCell): ErrorCell;
+PROCEDURE MakeErrorCell (errorCode: INTEGER): ErrorCell;
 (* Error cells are all marked by the same special 'ErrorCell' type. To
  * distinguish between errors there are global variables, which play the role
  * of error codes. E.g. to check if a cell error is a parsing error, you
@@ -90,10 +101,11 @@ PROCEDURE MakeErrorCell (VAR error: ErrorCell): ErrorCell;
  * a valid empty cell). So, we must assign table[w,h] := MakeErrorCell and
  * pass it one of global variable instances, e.g. 'errParsing'. *)
 BEGIN
-   IF error = NIL THEN
-      NEW (error);
+   IF errors [errorCode] = NIL THEN
+      NEW (errors [errorCode]);
+      errors [errorCode].code := errorCode;
    END;
-   RETURN error
+   RETURN errors [errorCode]
 END MakeErrorCell;
 
 PROCEDURE Length (VAR str: ARRAY OF CHAR): LONGINT;
@@ -250,25 +262,7 @@ VAR
          | cell: ValueCell DO
             Out.Int (cell.value, 0);
          | cell: ErrorCell DO
-            IF cell = errParsing THEN
-               Out.String ('#Parsing');
-            ELSIF cell = errReading THEN
-               Out.String ('#Reading');
-            ELSIF cell = errCycle THEN
-               Out.String ('#Cycle');
-            ELSIF cell = errOutOfRange THEN
-               Out.String ('#OutOfRange');
-            ELSIF cell = errEmpty THEN
-               Out.String ('#Empty');
-            ELSIF cell = errStringOp THEN
-               Out.String ('#StringOp');
-            ELSIF cell = errRefError THEN
-               Out.String ('#RefErr');
-            ELSIF cell = errDivByZero THEN
-               Out.String ('#DivByZero');
-            ELSE
-               ASSERT (FALSE, 60);
-            END;
+            Out.String (errorTexts [cell.code]);
          END;
       END;
    END OutputCell;
@@ -373,8 +367,8 @@ VAR
                         | cell: StringCell DO
                            res := MakeErrorCell (errStringOp);
                         | cell: ErrorCell DO
-                           IF cell = errCycle THEN
-                              res := errCycle
+                           IF cell.code = errCycle THEN
+                              res := cell
                            ELSE
                               res := MakeErrorCell (errRefError);
                            END;
@@ -451,6 +445,27 @@ BEGIN
    OutputTable (table);
 END Do;
 
+PROCEDURE Init;
+VAR
+   i: INTEGER;
 BEGIN
+   FOR i := 0 TO LEN (errorTexts) - 1 DO
+      errorTexts [i] := '';
+   END;
+   errorTexts [errParsing   ] := '#Parsing';
+   errorTexts [errReading   ] := '#Reading';
+   errorTexts [errCycle     ] := '#Cycle';
+   errorTexts [errOutOfRange] := '#OutOfRange';
+   errorTexts [errEmpty     ] := '#Empty';
+   errorTexts [errStringOp  ] := '#StringOp';
+   errorTexts [errRefError  ] := '#RefErr';
+   errorTexts [errDivByZero ] := '#DivByZero';
+   FOR i := 0 TO LEN (errorTexts) - 1 DO
+      ASSERT (errorTexts [i] # '', 100);
+   END;
+END Init;
+
+BEGIN
+   Init;
    Do;
 END SmallExcel.
