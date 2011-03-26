@@ -8,35 +8,8 @@ MODULE SmallExcel;
 IMPORT
    SYSTEM, In, Out;
 
-(* SmallExcel is a program that reads a table from StdIn, calculates it on the
- * fly and outputs it to StdOut.
- * Note: can't dump data directly to output and forget it: later we can find a
- * link to a previously discarded cell. How about two-pass work: 1st pass
- * gathers all link data and remembers error positions. Possible errors:
- * - can't calculate due to string reference (#string);
- * - circular reference (#loop);
- * - division by zero (#zero);
- * - empty cell or contains an error (#empty).
- * Links can be backward, forward and self (#loop error). If we know all the
- * links, then we can output data on the second stage as soon as all the
- * preconditions for a next cell is read from the input stream.
-
- Sample data:
-6	4
-12	=C2	3	'Sample
-=A1+B1*C1/5	=A2*B1	=B3-C3	'Spread
-'Test	=4-3	5	'Sheet
-""	=A9	=1/0	=A5
-=B5	=1+A5+1	=5A	=A1++A1
-=1+	x	=A5
-
-12	-4	3	Sample
-4	-16	-4	Spread
-Test	1	5	Sheet
-#Parse	#Cell	#Inf	#Cycle
-#Cycle	#Cycle	#NaN	#StrOp on Numbers
-#Expr	#Parse	#Cycle
- *)
+(* SmallExcel is a program that reads a table from StdIn, calculates it and
+ * outputs it to StdOut. *)
 
 CONST
    MaxCellDataLength = 256; (* Max length of a cell input text *)
