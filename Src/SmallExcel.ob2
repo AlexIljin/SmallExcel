@@ -157,7 +157,7 @@ BEGIN
 END StrToCell;
 
 PROCEDURE LoadTable (): Table;
-(* Read table from module In into the global 'table'. *)
+(* Read table from module In and return it. *)
 CONST
    MaxWidth = ORD('Z') - ORD ('A') + 1;
    MaxHeight = ORD('9') - ORD ('0') + 1;
@@ -266,16 +266,16 @@ VAR
 
    PROCEDURE CalcExpression (VAR str: ARRAY OF CHAR): Cell;
    (* Calculate the expression in 'str' and return the result either as a
-    * ValueCell on success, or one of the global ErrorCell instances on
-    * error. *)
+    * ValueCell on success, or an ErrorCell on error. *)
    CONST
+      (* Values for the 'operation' variable. *)
       opAssign = 0;
       opPlus = 1;
       opMinus = 2;
       opDivide = 3;
       opMultiply = 4;
    VAR
-      valueCell: ValueCell;
+      valueCell: ValueCell; (* Result of a successful evaluation *)
       i, value, integer, operation: LONGINT;
       res, cell: Cell;
 
@@ -336,17 +336,18 @@ VAR
       operation := opAssign; (* operation to apply to 'value' and next operand *)
       i := 0; (* current char index in str *)
       WHILE res = NIL DO
-         (* Interpred an operand starting at str [i]: a number or a cell reference. *)
+         (* Interpret an operand starting at str [i]: a number or a cell reference. *)
          CASE str [i] OF
          | 0X: (* oops - operand expected here *)
             res := MakeErrorCell (errParsing);
-         | '0'..'9':
+         | '0'..'9': (* integer operand *)
             IF StrToInt (str, i, integer) OR ~(('0' <= str [i]) & (str [i] <= '9')) THEN
                IF ~DoOperation (value, operation, integer) THEN
                   res := MakeErrorCell (errDivByZero);
                END;
             END;
-         | 'a'..'z', 'A'..'Z':
+         | 'a'..'z', 'A'..'Z': (* cell reference *)
+            (* str [i + 1] can be = 0X, but it's OK *)
             cell := DereferenceCell (str [i], str [i + 1], res);
             INC (i, 2);
             IF res = NIL THEN
