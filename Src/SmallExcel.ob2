@@ -76,7 +76,7 @@ TYPE
 VAR
    (* Global error identifiers *)
    errParsing, errReading, errCycle, errOutOfRange, errEmpty, errStringOp,
-   errRefError: ErrorCell;
+   errRefError, errDivByZero: ErrorCell;
 
 PROCEDURE MakeErrorCell (VAR error: ErrorCell): ErrorCell;
 (* Error cells are all marked by the same special 'ErrorCell' type. To
@@ -261,6 +261,8 @@ VAR
                Out.String ('#StringOp');
             ELSIF cell = errRefError THEN
                Out.String ('#RefErr');
+            ELSIF cell = errDivByZero THEN
+               Out.String ('#DivByZero');
             ELSE
                ASSERT (FALSE, 60);
             END;
@@ -310,18 +312,27 @@ VAR
       i, w, h, value, integer, operation: LONGINT;
       res, cell: Cell;
 
-      PROCEDURE DoOperation (VAR value: LONGINT; operation, operand: LONGINT);
+      PROCEDURE DoOperation (VAR value: LONGINT; operation, operand: LONGINT): BOOLEAN;
       (* Perform operation (one of opXXX constants) and put result in 'value'.
        * 'value' initially contains left operand, 'operand' contains right
-       * operand. *)
+       * operand. Return FALSE on division by zero error. *)
+      VAR
+         res: BOOLEAN;
       BEGIN
+         res := TRUE;
          CASE operation OF
          | opAssign: value := operand;
          | opPlus: value := value + operand;
          | opMinus: value := value - operand;
-         | opDivide: value := value DIV operand;
+         | opDivide:
+            IF operand = 0 THEN
+               res := FALSE;
+            ELSE
+               value := value DIV operand;
+            END;
          | opMultiply: value := value * operand;
          END;
+         RETURN res
       END DoOperation;
 
    BEGIN
@@ -335,7 +346,9 @@ VAR
             res := MakeErrorCell (errParsing);
          | '0'..'9':
             IF StrToInt (str, i, integer) OR ~(('0' <= str [i]) & (str [i] <= '9')) THEN
-               DoOperation (value, operation, integer);
+               IF ~DoOperation (value, operation, integer) THEN
+                  res := MakeErrorCell (errDivByZero);
+               END;
             END;
          | 'a'..'z', 'A'..'Z':
             w := ORD (CAP (str [i])) - ORD ('A');
@@ -351,7 +364,9 @@ VAR
                            cell := CalcCell (cell (ExpressionCell));
                         END;
                         WITH cell: ValueCell DO
-                           DoOperation (value, operation, cell.value);
+                           IF ~DoOperation (value, operation, cell.value) THEN
+                              res := MakeErrorCell (errDivByZero);
+                           END;
                         | cell: StringCell DO
                            res := MakeErrorCell (errStringOp);
                         | cell: ErrorCell DO
