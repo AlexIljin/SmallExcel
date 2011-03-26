@@ -354,8 +354,8 @@ VAR
             w := ORD (CAP (str [i])) - ORD ('A');
             INC (i);
             IF w < LEN (table^, 0) THEN
-               IF ('0' <= str [i]) & (str [i] <= '9') THEN
-                  h := ORD (str [i]) - ORD ('0');
+               IF ('1' <= str [i]) & (str [i] <= '9') THEN
+                  h := ORD (str [i]) - ORD ('1');
                   INC (i);
                   IF h < LEN (table^, 1) THEN
                      cell := table [w, h];
