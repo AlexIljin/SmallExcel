@@ -300,31 +300,50 @@ VAR
     * ValueCell on success, or one of the global ErrorCell instances on
     * error. *)
    CONST
-      opNone = 0;
+      opAssign = 0;
       opPlus = 1;
       opMinus = 2;
       opDivide = 3;
       opMultiply = 4;
    VAR
       valueCell: ValueCell;
-      i, w, h, value, operation: LONGINT;
+      i, w, h, value, integer, operation: LONGINT;
       res, cell: Cell;
+
+      PROCEDURE DoOperation (VAR value: LONGINT; operation, operand: LONGINT);
+      (* Perform operation (one of opXXX constants) and put result in 'value'.
+       * 'value' initially contains left operand, 'operand' contains right
+       * operand. *)
+      BEGIN
+         CASE operation OF
+         | opAssign: value := operand;
+         | opPlus: value := value + operand;
+         | opMinus: value := value - operand;
+         | opDivide: value := value DIV operand;
+         | opMultiply: value := value * operand;
+         END;
+      END DoOperation;
+
    BEGIN
       res := NIL;
       value := 0;
-      operation := opNone;
-      (* TODO: add operations recognition *)
+      operation := opAssign;
       i := 0;
-      WHILE (res = NIL) & (str [i] # 0X) DO
+      WHILE res = NIL DO
          CASE str [i] OF
+         | 0X:
+            res := MakeErrorCell (errParsing);
          | '0'..'9':
-            (* TODO: add number recognition *)
+            IF StrToInt (str, i, integer) OR ~(('0' <= str [i]) & (str [i] <= '9')) THEN
+               DoOperation (value, operation, integer);
+            END;
          | 'a'..'z', 'A'..'Z':
             w := ORD (CAP (str [i])) - ORD ('A');
+            INC (i);
             IF w < LEN (table^, 0) THEN
-               INC (i);
                IF ('0' <= str [i]) & (str [i] <= '9') THEN
                   h := ORD (str [i]) - ORD ('0');
+                  INC (i);
                   IF h < LEN (table^, 1) THEN
                      cell := table [w, h];
                      IF cell # NIL THEN
@@ -332,13 +351,7 @@ VAR
                            cell := CalcCell (cell (ExpressionCell));
                         END;
                         WITH cell: ValueCell DO
-                           CASE operation OF
-                           | opNone: value := cell.value;
-                           | opPlus: value := value + cell.value;
-                           | opMinus: value := value - cell.value;
-                           | opDivide: value := value DIV cell.value;
-                           | opMultiply: value := value * cell.value;
-                           END;
+                           DoOperation (value, operation, cell.value);
                         | cell: StringCell DO
                            res := MakeErrorCell (errStringOp);
                         | cell: ErrorCell DO
@@ -351,9 +364,6 @@ VAR
                      res := MakeErrorCell (errOutOfRange);
                   END;
                ELSE
-                  IF str [i] = 0X THEN
-                     DEC (i);
-                  END;
                   res := MakeErrorCell (errParsing);
                END;
             ELSE
@@ -362,7 +372,21 @@ VAR
          ELSE
             res := MakeErrorCell (errParsing);
          END;
-         INC (i);
+         IF res = NIL THEN
+            CASE str [i] OF
+            | 0X: (* end of expression = success *)
+               NEW (valueCell);
+               valueCell.value := value;
+               res := valueCell;
+            | '+': operation := opPlus;
+            | '-': operation := opMinus;
+            | '/': operation := opDivide;
+            | '*': operation := opMultiply;
+            ELSE
+               res := MakeErrorCell (errParsing);
+            END;
+            INC (i);
+         END;
       END;
       RETURN res
    END CalcExpression;
