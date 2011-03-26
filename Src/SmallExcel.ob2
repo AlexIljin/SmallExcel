@@ -96,6 +96,7 @@ CONST
 VAR
    maxIndex, power10: LONGINT;
 BEGIN
+   ASSERT (str [0] # 0X, 20);
    WHILE str [i] = '0' DO (* skip leading zeros *)
       INC (i);
    END;
