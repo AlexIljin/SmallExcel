@@ -85,21 +85,17 @@ TYPE
    END;
 
 VAR
-   (* Global error identifiers *)
+   (* Global error identifiers and texts *)
    errors: ARRAY NumErrors OF ErrorCell;
    errorTexts: ARRAY NumErrors OF ARRAY 12 OF CHAR;
 
 PROCEDURE MakeErrorCell (errorCode: INTEGER): ErrorCell;
 (* Error cells are all marked by the same special 'ErrorCell' type. To
- * distinguish between errors there are global variables, which play the role
- * of error codes. E.g. to check if a cell error is a parsing error, you
- * should compare the cell value against the 'errParsing' global variable.
- * This way we can use a fixed number of ErrorCell instances, not more than
- * the number of error types we actually encountered in a given table. But we
- * can't just assign 'errParsing' to a table cell, because we don't know if
- * 'errParsing' was ever initialized or if it is = NIL (which would mean it is
- * a valid empty cell). So, we must assign table[w,h] := MakeErrorCell and
- * pass it one of global variable instances, e.g. 'errParsing'. *)
+ * distinguish between errors there is the 'code' field, and there is also the
+ * global 'errors' array, which ensures that for each code only one ErrorCode
+ * instance will be created. This way we can use a fixed number of ErrorCell
+ * instances, not more than the number of error types we actually encountered
+ * in a given table. *)
 BEGIN
    IF errors [errorCode] = NIL THEN
       NEW (errors [errorCode]);
@@ -127,7 +123,7 @@ CONST
 VAR
    maxIndex, power10: LONGINT;
 BEGIN
-   WHILE str [i] = '0' DO (* skip leading zeroes *)
+   WHILE str [i] = '0' DO (* skip leading zeros *)
       INC (i);
    END;
    maxIndex := i + MaxLength;
@@ -221,7 +217,7 @@ VAR
       RETURN (i > 0) OR In.Done & (ch < ' ')
    END ReadCellStr;
 
-BEGIN
+BEGIN (* LoadTable *)
    In.Open;
    In.LongInt (height);
    ASSERT (In.Done, 20);
@@ -310,9 +306,9 @@ VAR
       res, cell: Cell;
 
       PROCEDURE DoOperation (VAR value: LONGINT; operation, operand: LONGINT): BOOLEAN;
-      (* Perform operation (one of opXXX constants) and put result in 'value'.
-       * 'value' initially contains left operand, 'operand' contains right
-       * operand. Return FALSE on division by zero error. *)
+      (* Perform 'operation' (one of opXXX constants) and put result in
+       * 'value'. 'value' initially contains the left operand, 'operand'
+       * contains the right operand. Return FALSE on division by zero. *)
       VAR
          res: BOOLEAN;
       BEGIN
@@ -360,12 +356,13 @@ VAR
          RETURN res
       END DereferenceCell;
 
-   BEGIN
+   BEGIN (* CalcExpression *)
       res := NIL;
       value := 0;
       operation := opAssign;
       i := 0;
       WHILE res = NIL DO
+         (* Interpred an operand starting at str [i]: a number or a cell reference. *)
          CASE str [i] OF
          | 0X: (* oops - operand expected here *)
             res := MakeErrorCell (errParsing);
@@ -424,6 +421,10 @@ VAR
    END CalcExpression;
 
    PROCEDURE CalcCell (cell: ExpressionCell): Cell;
+   (* Calculate the 'cell' and return either a ValueCell with the result, or
+    * an ErrorCell. This procedure can be called recursively by CalcExpression
+    * if the expression references a cell which itself contains an expression
+    * to be calculated. Detect and report error on cyclic references. *)
    VAR
       res: Cell;
    BEGIN
@@ -437,7 +438,7 @@ VAR
       RETURN res
    END CalcCell;
 
-BEGIN
+BEGIN (* CalculateTable *)
    h := 0;
    WHILE h < LEN (table^, 1) DO
       w := 0;
