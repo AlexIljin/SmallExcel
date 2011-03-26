@@ -306,7 +306,7 @@ VAR
       opMultiply = 4;
    VAR
       valueCell: ValueCell;
-      i, w, h, value, integer, operation: LONGINT;
+      i, value, integer, operation: LONGINT;
       res, cell: Cell;
 
       PROCEDURE DoOperation (VAR value: LONGINT; operation, operand: LONGINT): BOOLEAN;
@@ -332,6 +332,34 @@ VAR
          RETURN res
       END DoOperation;
 
+      PROCEDURE DereferenceCell (wChar, hChar: CHAR; VAR error: Cell): Cell;
+      (* If 'wChar' = 'A' and 'hChar' = '1', then return cell at 'A1', i.e.
+       * table [0, 0]. On invalid input values set 'error' and return NIL,
+       * otherwise 'error' = NIL and result is the requested table cell. *)
+      VAR
+         w, h: LONGINT;
+         res: Cell;
+      BEGIN
+         ASSERT (error = NIL, 20);
+         res := NIL;
+         w := ORD (CAP (wChar)) - ORD ('A');
+         IF w < LEN (table^, 0) THEN
+            IF ('1' <= hChar) & (hChar <= '9') THEN
+               h := ORD (hChar) - ORD ('1');
+               IF h < LEN (table^, 1) THEN
+                  res := table [w, h];
+               ELSE
+                  error := MakeErrorCell (errOutOfRange);
+               END;
+            ELSE
+               error := MakeErrorCell (errParsing);
+            END;
+         ELSE
+            error := MakeErrorCell (errOutOfRange);
+         END;
+         RETURN res
+      END DereferenceCell;
+
    BEGIN
       res := NIL;
       value := 0;
@@ -348,42 +376,29 @@ VAR
                END;
             END;
          | 'a'..'z', 'A'..'Z':
-            w := ORD (CAP (str [i])) - ORD ('A');
-            INC (i);
-            IF w < LEN (table^, 0) THEN
-               IF ('1' <= str [i]) & (str [i] <= '9') THEN
-                  h := ORD (str [i]) - ORD ('1');
-                  INC (i);
-                  IF h < LEN (table^, 1) THEN
-                     cell := table [w, h];
-                     IF cell # NIL THEN
-                        IF cell IS ExpressionCell THEN
-                           cell := CalcCell (cell (ExpressionCell));
-                        END;
-                        WITH cell: ValueCell DO
-                           IF ~DoOperation (value, operation, cell.value) THEN
-                              res := MakeErrorCell (errDivByZero);
-                           END;
-                        | cell: StringCell DO
-                           res := MakeErrorCell (errStringOp);
-                        | cell: ErrorCell DO
-                           IF cell.code = errCycle THEN
-                              res := cell
-                           ELSE
-                              res := MakeErrorCell (errRefError);
-                           END;
-                        END;
-                     ELSE
-                        res := MakeErrorCell (errEmpty);
+            cell := DereferenceCell (str [i], str [i + 1], res);
+            INC (i, 2);
+            IF res = NIL THEN
+               IF cell # NIL THEN
+                  IF cell IS ExpressionCell THEN
+                     cell := CalcCell (cell (ExpressionCell));
+                  END;
+                  WITH cell: ValueCell DO
+                     IF ~DoOperation (value, operation, cell.value) THEN
+                        res := MakeErrorCell (errDivByZero);
                      END;
-                  ELSE
-                     res := MakeErrorCell (errOutOfRange);
+                  | cell: StringCell DO
+                     res := MakeErrorCell (errStringOp);
+                  | cell: ErrorCell DO
+                     IF cell.code = errCycle THEN
+                        res := cell;
+                     ELSE
+                        res := MakeErrorCell (errRefError);
+                     END;
                   END;
                ELSE
-                  res := MakeErrorCell (errParsing);
+                  res := MakeErrorCell (errEmpty);
                END;
-            ELSE
-               res := MakeErrorCell (errOutOfRange);
             END;
          ELSE
             res := MakeErrorCell (errParsing);
