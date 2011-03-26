@@ -8,9 +8,11 @@
 # ============================================================================
 # Rules for building the application
 
-include $(ROOT)/A3/Rules.make
+include $(ROOT)/A3Lib/Rules.make
 
-%.exe: %.prj *.ob2 $(A3obj_files)
+XC := xc.exe
+
+%.exe: %.prj *.ob2 $(sym_files)
 	$(XC) =project $<
 	-@echo off && mkdir obj 2> NUL
 	-@echo off && mv --force *.obj *.sym *.res tmp.lnk obj 2> NUL
