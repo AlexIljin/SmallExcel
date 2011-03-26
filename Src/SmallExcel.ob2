@@ -373,7 +373,11 @@ VAR
                         | cell: StringCell DO
                            res := MakeErrorCell (errStringOp);
                         | cell: ErrorCell DO
-                           res := MakeErrorCell (errRefError);
+                           IF cell = errCycle THEN
+                              res := errCycle
+                           ELSE
+                              res := MakeErrorCell (errRefError);
+                           END;
                         END;
                      ELSE
                         res := MakeErrorCell (errEmpty);
