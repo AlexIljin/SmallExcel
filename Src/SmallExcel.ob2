@@ -333,8 +333,8 @@ VAR
    BEGIN (* CalcExpression *)
       res := NIL;
       value := 0;
-      operation := opAssign;
-      i := 0;
+      operation := opAssign; (* operation to apply to 'value' and next operand *)
+      i := 0; (* current char index in str *)
       WHILE res = NIL DO
          (* Interpred an operand starting at str [i]: a number or a cell reference. *)
          CASE str [i] OF
