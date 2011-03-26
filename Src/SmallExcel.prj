@@ -111,4 +111,3 @@
 !new exename = $(project)
 !message "Compiling " + exename + ".exe in " + mode + " mode"
 !module $(project).ob2
-!module htmlhelp.lib
