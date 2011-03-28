@@ -203,8 +203,16 @@ private:
 };
 
 int multiple(int i1, int i2) { return i1 * i2; }
-int divide(int i1, int i2) { return i1 / i2; }
+
+int divide(int i1, int i2) 
+{ 
+    if (!i2) 
+        throw calc_exception("divide by zero"); 
+    return i1 / i2;
+}
+
 int plus(int i1, int i2) { return i1 + i2; }
+
 int minus(int i1, int i2) { return i1 - i2; }
 
 operation_expression::op
@@ -439,6 +447,20 @@ std::string result = parse_expression(s)->eval(context)->as_str();
 }
 
 void
+test_expression_error(std::string const& e, i_context& context)
+{
+stream s(e);
+    try 
+    {
+        parse_expression(s)->eval(context);
+        throw std::runtime_error( "Exception expected.");
+    }
+    catch (std::exception const&)
+    {
+    }
+}
+
+void
 test_cell(std::string const& content, i_context& context, std::string const& expected)
 {
 stream s(content);
@@ -479,6 +501,7 @@ test_context context(3, 4, std::auto_ptr<i_value>(new number_value(3)));
     test_expression("12/3+1", context, "5");
     test_expression("d5+1*100", context, "400");
     test_expression("a1-3", context, "-3");
+    test_expression_error("1/0", context);
 
     test_cell("'abc", context, "abc");
     test_cell("5", context, "5");
