@@ -94,7 +94,7 @@ PROCEDURE StrToInt (VAR str: ARRAY OF CHAR; VAR i: LONGINT; VAR value: LONGINT):
 CONST
    MaxLength = 10; (* bound by the LONGINT type *)
 VAR
-   maxIndex, power10: LONGINT;
+   maxIndex: LONGINT;
 BEGIN
    ASSERT (str [0] # 0X, 20);
    WHILE str [i] = '0' DO (* skip leading zeros *)
@@ -102,10 +102,8 @@ BEGIN
    END;
    maxIndex := i + MaxLength;
    value := 0;
-   power10 := 1;
    WHILE (i < maxIndex) & ('0' <= str [i]) & (str [i] <= '9') DO
-      value := value * power10 + ORD (str [i]) - ORD ('0');
-      power10 := power10 * 10;
+      value := value * 10 + ORD (str [i]) - ORD ('0');
       INC (i);
    END;
    RETURN str [i] = 0X
