@@ -454,7 +454,7 @@ BEGIN
    errorTexts [errDivByZero ] := '#DivByZero';
    (* make sure all error codes have text assigned *)
    FOR i := 0 TO LEN (errorTexts) - 1 DO
-      ASSERT (errorTexts [i] # '', 100);
+      ASSERT (errorTexts [i][0] = '#', 100);
    END;
 END Init;
 
